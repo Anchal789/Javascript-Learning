@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Modal Window</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+		/>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<header>
+			<button type="button" class="show-modal">Show Modal 1</button>
+			<button type="button" class="show-modal">Show Modal 2</button>
+			<button type="button" class="show-modal">Show Modal 3</button>
+			<div class="modal-container hidden">
+				<div class="modal">
+					<div class="close-button-container">
+						<button class="close-button">
+							<i class="fa-solid fa-xmark fa-2xl"></i>
+						</button>
+					</div>
+					<div class="modal-content">
+						<h4 class="modal-title">I'm a modal window</h4>
+						<p>
+							Lorem ipsum dolor sit amet, consectetur adipisicing elit. Neque
+							earum excepturi esse perspiciatis, eos id incidunt magnam dicta
+							doloremque ipsa impedit quaerat mollitia sed ipsam. Optio tempore
+							dignissimos temporibus ipsam maxime obcaecati pariatur impedit
+							odio laborum modi a voluptas placeat tempora earum doloremque
+							animi quidem, sint, asperiores culpa. Molestias, officia quasi?
+							Dolores enim esse possimus veritatis, corporis nostrum dolore cum
+							atque error, eius impedit, fugit nemo beatae. Alias, nobis esse.
+						</p>
+					</div>
+				</div>
+			</div>
+			<div class="overlay hidden"></div>
+		</header>
+		<a
+			href="../index.html"
+			style="
+				position: absolute;
+				top: 20px;
+				left: 20px;
+				z-index: 100;
+				background: #333;
+				color: white;
+				padding: 5px 15px;
+				text-decoration: none;
+				border-radius: 20px;
+				font-size: 14px;
+			"
+			>← Back</a
+		>
+		<script src="script.js"></script>
+	</body>
+</html>
