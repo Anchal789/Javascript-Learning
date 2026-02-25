@@ -77,7 +77,7 @@
 			z-index: 1;
 			margin: 0;
 		}
-		#secret-number {
+		.secret-number {
 			background-color: white;
 			margin: auto;
 			color: black;
@@ -124,7 +124,7 @@
 		<div class="main-container">
 			<header>
 				<section class="section-1">
-					<button type="button" id="again">Again!</button>
+					<button type="button" class="again">Again!</button>
 					<h2>(Between 1 and 20)</h2>
 				</section>
 			</header>
@@ -133,19 +133,19 @@
 					<h1>Guess My Number!</h1>
 					<div class="secret-number-section">
 						<hr />
-						<h2 id="secret-number">?</h2>
+						<h2 class="secret-number">?</h2>
 					</div>
 				</section>
 
 				<section class="section-3">
 					<section class="left-section">
-						<input type="number" min="1" max="20" id="input-number" />
-						<button type="button" id="check">Check!</button>
+						<input type="number" min="1" max="20" class="input-number" />
+						<button type="button" class="check">Check!</button>
 					</section>
 					<section class="right-section">
-						<p id="message">Start guessing...</p>
-						<p>💯 Score: <span id="label-score">5</span></p>
-						<p>🥇 Highscore: <span id="label-highscore">0</span></p>
+						<p class="message">Start guessing...</p>
+						<p>💯 Score: <span class="label-score">5</span></p>
+						<p>🥇 Highscore: <span class="label-highscore">0</span></p>
 					</section>
 				</section>
 			</main>
