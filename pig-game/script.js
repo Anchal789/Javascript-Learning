@@ -54,8 +54,7 @@ function rollDice() {
 
 function holdScore() {
 	if (
-		player1.classList.contains("player--active") &&
-		player1.classList.contains("player--0")
+		player1.classList.contains("player--active")
 	) {
 		score0 += currentScore;
 		player1Score.textContent = score0;
@@ -84,6 +83,8 @@ function newGame() {
 	dice.style.display = "none";
 	player1.classList.add("player--active");
 	player2.classList.remove("player--active");
+	score0 = 0;
+	score1 = 0;
 	currentScore = 0;
 	[
 		player1Score,
