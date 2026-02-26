@@ -1,7 +1,7 @@
 "use strict";
 
-let score0 = 99;
-let score1 = 99;
+let score0 = 0;
+let score1 = 0;
 let currentScore = 0;
 const dice = document.querySelector(".dice");
 const rollDiceBtn = document.querySelector(".btn--roll");
