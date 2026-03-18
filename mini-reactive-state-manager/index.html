@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Mini Reactive State Manager</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<h1>Mini Reactive State Manager</h1>
+		<div class="app">
+			<div class="description">
+				<p>
+					Design and implement a small reactive state management library using
+					plain JavaScript. UI is not required. Focus strictly on logic,
+					architecture, and correctness.
+				</p>
+
+				<b>Core API:</b>
+
+				<p>createStore(initialState)</p>
+
+				<strong>Returned methods:</strong>
+
+				<ul>
+					<li>getState()</li>
+					<li>setState(updater)</li>
+					<li>subscribe(selector, callback)</li>
+
+					<li>undo()</li>
+
+					<li>redo()</li>
+				</ul>
+
+				<b>Functional Requirements:</b>
+
+				<ol>
+					<li>State Immutability</li>
+					<ul>
+						<li>State must never be mutated directly.</li>
+						<li>
+							setState must accept a function updater: prevState => newState.
+						</li>
+						<li>Each update must produce a new state object.</li>
+					</ul>
+					<li>Encapsulation</li>
+					<ul>
+						<li>
+							Internal state must not be directly modifiable from outside.
+						</li>
+						<li>
+							Direct mutation attempts on getState() result should not affect
+							actual state.
+						</li>
+						<li>Prefer freezing or proxy based protection.</li>
+					</ul>
+					<li>Selective Subscription</li>
+					<ul>
+						<li>subscribe(selector, callback)</li>
+						<li>selector receives full state and returns a slice.</li>
+						<li>callback fires only if selected value changes.</li>
+						<li>Must compare previous and next selected value.</li>
+					</ul>
+					<li>Batched Updates</li>
+					<ul>
+						<li>
+							Multiple setState calls in the same tick must notify subscribers
+							only once.
+						</li>
+						<li>
+							Use microtask queue strategy such as Promise.resolve or
+							queueMicrotask.
+						</li>
+					</ul>
+					<li>Undo and Redo</li>
+					<ul>
+						<li>Maintain history of last 10 states.</li>
+						<li>undo moves one step back.</li>
+						<li>redo moves forward if available.</li>
+						<li>New updates after undo should discard future history.</li>
+					</ul>
+					<li>Deep Updates</li>
+					<ul>
+						<li>Nested updates must trigger relevant subscribers.</li>
+						<li>Avoid naive reference comparison only at top level.</li>
+					</ul>
+				</ol>
+
+				<b>Constraints: </b>
+				<ul>
+					<li>No external libraries.</li>
+					<li>Code should be modular and readable.</li>
+					<li>Avoid global variables.</li>
+					<li>Focus on maintainability and separation of concerns.</li>
+				</ul>
+
+				<b>Evaluation Criteria:</b>
+				<ul>
+					<li>Correctness</li>
+					<li>Clean abstractions</li>
+					<li>Edge case handling</li>
+					<li>Performance considerations</li>
+					<li>Code readability</li>
+				</ul>
+			</div>
+			<div class="controls">
+				<div class="state-display">
+					<h2>Count: <span id="count">0</span></h2>
+					<p>Last Action: <span id="action">None</span></p>
+				</div>
+				<div class="buttons">
+					<button id="increment">Increment</button>
+					<button id="decrement">Decrement</button>
+					<button id="undo">Undo</button>
+					<button id="redo">Redo</button>
+				</div>
+				<pre>
+            <code>
+ "use strict";
+
+
+ class Store {
+ 	#state;
+ 	#subscribers = new Set();
+ 	#history = [];
+ 	#historyIndex = -1;
+ 	#isBatching = false;
+ 	#maxHistory = 10;
+
+ 	constructor(initialState) {
+ 		const frozenState = this.#deepFreeze({ ...initialState });
+ 		this.#state = frozenState;
+ 		this.#addToHistory(frozenState);
+ 	}
+
+ 	getState = () => this.#state;
+
+ 	setState = (updater) => {
+ 		const nextState = this.#deepFreeze(updater(this.#state));
+
+ 		if (nextState !== this.#state) {
+ 			this.#state = nextState;
+ 			this.#addToHistory(nextState);
+ 			this.#scheduleNotify();
+ 		}
+ 	};
+
+ 	subscribe = (selector, callback) => {
+ 		const subscription = {
+ 			selector,
+ 			callback,
+ 			lastValue: selector(this.#state),
+ 		};
+
+ 		this.#subscribers.add(subscription);
+
+ 		return () => this.#subscribers.delete(subscription);
+ 	};
+
+ 	undo = () => {
+ 		if (this.#historyIndex > 0) {
+ 			this.#historyIndex--;
+ 			this.#state = this.#history[this.#historyIndex];
+ 			this.#scheduleNotify();
+ 		}
+ 	};
+
+ 	redo = () => {
+ 		if (this.#historyIndex < this.#history.length - 1) {
+ 			this.#historyIndex++;
+ 			this.#state = this.#history[this.#historyIndex];
+ 			this.#scheduleNotify();
+ 		}
+ 	};
+
+ 	#addToHistory(state) {
+ 		this.#history = this.#history.slice(0, this.#historyIndex + 1);
+ 		this.#history.push(state);
+
+ 		if (this.#history.length > this.#maxHistory) {
+ 			this.#history.shift();
+ 		} else {
+ 			this.#historyIndex++;
+ 		}
+ 	}
+
+ 	#scheduleNotify() {
+ 		if (this.#isBatching) return;
+
+ 		this.#isBatching = true;
+ 		queueMicrotask(() => {
+ 			this.#isBatching = false;
+ 			this.#notify();
+ 		});
+ 	}
+
+ 	#notify() {
+ 		this.#subscribers.forEach((sub) => {
+ 			const newValue = sub.selector(this.#state);
+ 			if (newValue !== sub.lastValue) {
+ 				sub.lastValue = newValue;
+ 				sub.callback(newValue);
+ 			}
+ 		});
+ 	}
+
+ 	#deepFreeze(obj) {
+ 		if (obj === null || typeof obj !== "object") return obj;
+
+ 		Object.freeze(obj);
+ 		Object.values(obj).forEach((val) => this.#deepFreeze(val));
+ 		return obj;
+     }
+     
+ }
+
+ document.addEventListener("DOMContentLoaded", () => {
+ 	const store = new Store({ count: 0, lastAction: "Initialize" });
+
+ 	const elements = {
+ 		count: document.getElementById("count"),
+ 		action: document.getElementById("action"),
+ 		inc: document.getElementById("increment"),
+ 		dec: document.getElementById("decrement"),
+ 		undo: document.getElementById("undo"),
+ 		redo: document.getElementById("redo"),
+ 	};
+
+ 	store.subscribe(
+ 		(s) => s.count,
+ 		(count) => {
+ 			elements.count.textContent = count;
+ 			console.log("UI Update: Count changed to", count);
+ 		},
+ 	);
+
+ 	store.subscribe(
+ 		(s) => s.lastAction,
+ 		(action) => {
+ 			elements.action.textContent = action;
+ 		},
+ 	);
+
+ 	elements.inc.onclick = () => {
+ 		store.setState((s) => ({
+ 			...s,
+ 			count: s.count + 1,
+ 			lastAction: "Increment",
+ 		}));
+ 		store.setState((s) => ({ ...s, lastAction: "Increment (Batched)" }));
+ 	};
+
+ 	elements.dec.onclick = () =>
+ 		store.setState((s) => ({
+ 			...s,
+ 			count: s.count - 1,
+ 			lastAction: "Decrement",
+ 		}));
+
+ 	elements.undo.onclick = () => store.undo();
+ 	elements.redo.onclick = () => store.redo();
+ });
+            </code>
+        </pre>
+			</div>
+		</div>
+		<script src="script.js"></script>
+	</body>
+</html>
