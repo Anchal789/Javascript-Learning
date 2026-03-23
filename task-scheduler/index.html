@@ -86,7 +86,7 @@
 
 					<button onclick="testPriorityCase()">Test Corner Case</button>
 
-					<button onclick="cancelLast()">Cancel Last Task</button>
+					<button onclick="cancelAllQueuedTasks()">Cancel All Queued Tasks</button>
 				</div>
 
 				<div
@@ -174,15 +174,14 @@ function createScheduler({ concurrency }) {
 			return id;
 		},
 
-		cancel(id) {
-			const idx = queue.findIndex((t) => t.id === id);
+		cancelAllQueued() {
+		  if (queue.length === 0) return [];
 
-			if (idx !== -1) {
-				queue.splice(idx, 1);
-				updateUI();
-				return true;
-			}
-			return false;
+		  const cancelledIds = queue.map(t => t.id);
+		  queue.length = 0;
+
+		  updateUI();
+		  return cancelledIds;
 		},
 	};
 }
@@ -219,16 +218,14 @@ function addTask(priority, duration) {
 	log(`Queued Task #${id} (Priority ${priority})`);
 }
 
-function cancelLast() {
-	if (lastTaskId) {
-		if (scheduler.cancel(lastTaskId)) {
-			log(`Cancelled Task #${lastTaskId}`);
-		} else {
-			log(`Task #${lastTaskId} already running or finished`);
-		}
-	} else {
-		log("No task to cancel");
-	}
+function cancelAllQueuedTasks() {
+  const ids = scheduler.cancelAllQueued();
+
+  if (ids.length) {
+    log(`Cancelled queued tasks: ${ids.join(", ")}`);
+  } else {
+    log("No queued tasks to cancel");
+  }
 }
 
 function testPriorityCase() {
@@ -301,15 +298,14 @@ function testPriorityCase() {
 						return id;
 					},
 
-					cancel(id) {
-						const idx = queue.findIndex((t) => t.id === id);
+					cancelAllQueued() {
+					  if (queue.length === 0) return [];
 
-						if (idx !== -1) {
-							queue.splice(idx, 1);
-							updateUI();
-							return true;
-						}
-						return false;
+					  const cancelledIds = queue.map(t => t.id);
+					  queue.length = 0;
+
+					  updateUI();
+					  return cancelledIds;
 					},
 				};
 			}
@@ -346,16 +342,14 @@ function testPriorityCase() {
 				log(`Queued Task #${id} (Priority ${priority})`);
 			}
 
-			function cancelLast() {
-				if (lastTaskId) {
-					if (scheduler.cancel(lastTaskId)) {
-						log(`Cancelled Task #${lastTaskId}`);
-					} else {
-						log(`Task #${lastTaskId} already running or finished`);
-					}
-				} else {
-					log("No task to cancel");
-				}
+			function cancelAllQueuedTasks() {
+			  const ids = scheduler.cancelAllQueued();
+
+			  if (ids.length) {
+			    log(`Cancelled queued tasks: ${ids.join(", ")}`);
+			  } else {
+			    log("No queued tasks to cancel");
+			  }
 			}
 
 			function testPriorityCase() {
