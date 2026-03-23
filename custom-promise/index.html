@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Custom Promise</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<style>
+		.image-container {
+			display: flex;
+			justify-content: start;
+		}
+		.draggable-image {
+			object-fit: cover;
+			width: 400px;
+			height: 400px;
+			cursor: grab;
+		}
+	</style>
+	<body>
+		<h1>Custom Promise Class Implementation</h1>
+		<div class="app">
+			<div class="description">
+				<p>
+					Implement a simplified Promise class that mimics native Promise
+					behavior.
+				</p>
+
+				<b>Class:</b>
+
+				<p>class MyPromise</p>
+
+				<strong>Requirements:</strong>
+
+				<ol>
+					<li>Internal States</li>
+					<ul>
+						<li>pending</li>
+						<li>fulfilled</li>
+						<li>rejected</li>
+					</ul>
+					<li>Constructor</li>
+					<ul>
+						<li>Accept executor function with resolve and reject.</li>
+						<li>Executor runs immediately.</li>
+					</ul>
+					<li>then Method</li>
+					<ul>
+						<li>Supports chaining.</li>
+						<li>Returns a new MyPromise.</li>
+						<li>Must handle synchronous and asynchronous resolution.</li>
+					</ul>
+					<li>catch Method</li>
+					<ul>
+						<li>Handles rejection.</li>
+						<li>Equivalent to then(null, onReject).</li>
+					</ul>
+					<li>finally Method</li>
+					<ul>
+						<li>Executes regardless of resolve or reject.</li>
+						<li>Passes through original value.</li>
+					</ul>
+					<li>Error Propagation</li>
+					<ul>
+						<li>
+							Errors thrown in executor or handlers must propagate correctly.
+						</li>
+					</ul>
+					<li>Async Behavior</li>
+					<ul>
+						<li>Resolution callbacks must execute asynchronously.</li>
+						<li>Use microtask strategy.</li>
+					</ul>
+				</ol>
+				<b>Constraints: </b>
+				<ul>
+					<li>No use of native Promise internally.</li>
+					<li>Must follow basic Promises/A+ behavior.</li>
+					<li>Handle multiple then calls before resolution.</li>
+				</ul>
+
+				<b>Evaluation Criteria:</b>
+				<ul>
+					<li>Correct chaining behavior</li>
+					<li>Proper state transitions</li>
+					<li>Async queue handling</li>
+					<li>Error bubbling</li>
+					<li>Clean internal structure</li>
+				</ul>
+			</div>
+			<div class="controls">
+				<pre>
+					<code>
+	class MyPromise {
+	  constructor(executor) {
+		this.state = "pending";
+		this.value = undefined;
+		this.reason = undefined;
+		this.onResolve = [];
+		this.onReject = [];
+		this.onFinally = [];
+		try {
+		  executor(this.resolve.bind(this), this.reject.bind(this));
+		} catch (error) {
+		  this.reject(error);
+		}
+	  }
+	  resolve(value) {
+		if (this.state === "pending") {
+		  this.state = "fulfilled";
+		  this.value = value;
+		  this.onResolve.forEach((fn) => fn(value));
+		}
+	  }
+	  reject(reason) {
+		if (this.state === "pending") {
+		  this.state = "rejected";
+		  this.reason = reason;
+		  this.onReject.forEach((fn) => fn(reason));
+		}
+	  }
+	  then(onResolve, onReject) {
+		return new MyPromise((resolve, reject) => {
+		  this.onResolve.push(() => {
+			try {
+			  const result = onResolve(this.value);
+			  resolve(result);
+			} catch (error) {
+			  reject(error);
+			}
+		  });
+		  this.onReject.push(() => {
+			try {
+			  const result = onReject(this.reason);
+			  resolve(result);
+			} catch (error) {
+			  reject(error);
+			}
+		  });
+		});
+	  }
+	  catch(onReject) {
+		return this.then(null, onReject);
+	  }
+	  finally(onFinally) {
+		this.onFinally.push(onFinally);
+	  }
+	}
+
+					</code>
+				</pre>
+			</div>
+		</div>
+		<script>
+			class MyPromise {
+				constructor(executor) {
+					this.state = "pending";
+					this.value = undefined;
+					this.reason = undefined;
+					this.onResolve = [];
+					this.onReject = [];
+					this.onFinally = [];
+					try {
+						executor(this.resolve.bind(this), this.reject.bind(this));
+					} catch (error) {
+						this.reject(error);
+					}
+				}
+				resolve(value) {
+					if (this.state === "pending") {
+						this.state = "fulfilled";
+						this.value = value;
+						this.onResolve.forEach((fn) => fn(value));
+					}
+				}
+				reject(reason) {
+					if (this.state === "pending") {
+						this.state = "rejected";
+						this.reason = reason;
+						this.onReject.forEach((fn) => fn(reason));
+					}
+				}
+				then(onResolve, onReject) {
+					return new MyPromise((resolve, reject) => {
+						this.onResolve.push(() => {
+							try {
+								const result = onResolve(this.value);
+								resolve(result);
+							} catch (error) {
+								reject(error);
+							}
+						});
+						this.onReject.push(() => {
+							try {
+								const result = onReject(this.reason);
+								resolve(result);
+							} catch (error) {
+								reject(error);
+							}
+						});
+					});
+				}
+				catch(onReject) {
+					return this.then(null, onReject);
+				}
+				finally(onFinally) {
+					return this.then(onFinally, onFinally);
+				}
+			}
+			// Example usage:
+			const promise = new MyPromise((resolve, reject) => {
+				setTimeout(() => resolve("Hello, World!"), 1000);
+			});
+			promise
+				.then((value) => {
+					console.log(value); // "Hello, World!"
+					return "Next step";
+				})
+				.then((value) => {
+					console.log(value); // "Next step"
+					// throw new Error("Something went wrong!");
+				})
+				.catch((error) => {
+					console.error(error); // Error: Something went wrong!
+				})
+				.finally(() => {
+					console.log("Promise settled."); // "Promise settled."
+				});
+		</script>
+	</body>
+</html>
