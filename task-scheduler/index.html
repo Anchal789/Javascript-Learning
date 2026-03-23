@@ -75,22 +75,167 @@
 				</ul>
 			</div>
 			<div class="controls">
-				<button onclick="addTask(1, 1000)">Add Task (Low Priority, 1s)</button>
-				<button onclick="addTask(10, 3000)">
-					Add Task (High Priority, 3s)
-				</button>
+				<div style="margin-bottom: 10px">
+					<button onclick="addTask(1, 2000)">
+						Add Task (Low Priority, 2s)
+					</button>
+
+					<button onclick="addTask(10, 3000)">
+						Add Task (High Priority, 3s)
+					</button>
+
+					<button onclick="testPriorityCase()">Test Corner Case</button>
+
+					<button onclick="cancelLast()">Cancel Last Task</button>
+				</div>
+
 				<div
 					id="status-board"
 					style="margin-top: 20px; padding: 10px; border: 1px solid #ccc"
 				>
-					<p>Active Tasks: <span id="active-num">0</span></p>
-					<p>Queue Length: <span id="queue-num">0</span></p>
-					<div id="log" style="font-family: monospace; font-size: 12px"></div>
+					<p>Active Tasks: <span id="active-count">0</span></p>
+					<p>Queue Length: <span id="queue-count">0</span></p>
+
+					<div
+						id="log"
+						style="
+							margin-top: 10px;
+							height: 200px;
+							overflow-y: auto;
+							background: #f9f9f9;
+							padding: 10px;
+							font-family: monospace;
+							font-size: 12px;
+						"
+					></div>
 				</div>
 
 				<pre>
 					<code>
-	
+
+				<code>
+function createScheduler({ concurrency }) {
+	const queue = [];
+	let running = 0;
+	let idCounter = 1;
+
+	function updateUI() {
+		document.getElementById("active-count").innerText = running;
+		document.getElementById("queue-count").innerText = queue.length;
+	}
+
+	function run(taskItem) {
+		running++;
+		updateUI();
+
+		const controller = new AbortController();
+
+		taskItem
+			.task(controller.signal)
+			.then(() => {
+				log(`Task ${taskItem.id} completed`);
+			})
+			.catch((err) => {
+				log(`Task ${taskItem.id} stopped: ${err.message}`);
+			})
+			.finally(() => {
+				running--;
+
+				if (queue.length) {
+					let highestIndex = 0;
+
+					for (let i = 1; i < queue.length; i++) {
+						if (queue[i].priority > queue[highestIndex].priority) {
+							highestIndex = i;
+						}
+					}
+
+					const next = queue.splice(highestIndex, 1)[0];
+					run(next);
+				}
+
+				updateUI();
+			});
+	}
+
+	return {
+		add(task, priority) {
+			const id = idCounter++;
+
+			const item = { id, task, priority };
+
+			if (running < concurrency) {
+				setTimeout(() => run(item), 0);
+			} else {
+				queue.push(item);
+				updateUI();
+			}
+
+			return id;
+		},
+
+		cancel(id) {
+			const idx = queue.findIndex((t) => t.id === id);
+
+			if (idx !== -1) {
+				queue.splice(idx, 1);
+				updateUI();
+				return true;
+			}
+			return false;
+		},
+	};
+}
+
+const scheduler = createScheduler({ concurrency: 1 });
+let lastTaskId = null;
+
+function log(msg) {
+	const logEl = document.getElementById("log");
+	logEl.innerHTML += `<div>> ${msg}</div>`;
+	logEl.scrollTop = logEl.scrollHeight;
+}
+
+function addTask(priority, duration) {
+	let id;
+
+	id = scheduler.add((signal) => {
+		log(`START: Task #${id} (P:${priority})`);
+
+		return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => {
+			log(`END: Task #${id}`);
+			resolve();
+		}, duration);
+
+		signal.onabort = () => {
+			clearTimeout(timer);
+			reject(new Error("Cancelled"));
+		};
+		});
+	}, priority);
+
+	lastTaskId = id;
+	log(`Queued Task #${id} (Priority ${priority})`);
+}
+
+function cancelLast() {
+	if (lastTaskId) {
+		if (scheduler.cancel(lastTaskId)) {
+			log(`Cancelled Task #${lastTaskId}`);
+		} else {
+			log(`Task #${lastTaskId} already running or finished`);
+		}
+	} else {
+		log("No task to cancel");
+	}
+}
+
+function testPriorityCase() {
+	addTask(1, 2000);
+	addTask(1, 3000);
+	addTask(10, 3000);
+}
 					</code>
 				</pre>
 			</div>
@@ -98,19 +243,16 @@
 		<script>
 			function createScheduler({ concurrency }) {
 				const queue = [];
-				let runningTasks = 0;
+				let running = 0;
 				let idCounter = 1;
 
 				function updateUI() {
-					const activeEl = document.getElementById("active-count");
-					const queueEl = document.getElementById("queue-count");
-
-					if (activeEl) activeEl.innerText = runningTasks;
-					if (queueEl) queueEl.innerText = queue.length;
+					document.getElementById("active-count").innerText = running;
+					document.getElementById("queue-count").innerText = queue.length;
 				}
 
 				function run(taskItem) {
-					runningTasks++;
+					running++;
 					updateUI();
 
 					const controller = new AbortController();
@@ -118,16 +260,25 @@
 					taskItem
 						.task(controller.signal)
 						.then(() => {
-							console.log(`Task ${taskItem.id} completed`);
+							log(`Task ${taskItem.id} completed`);
 						})
 						.catch((err) => {
-							console.log(`Task ${taskItem.id} stopped:`, err.message);
+							log(`Task ${taskItem.id} stopped: ${err.message}`);
 						})
 						.finally(() => {
-							runningTasks--;
+							running--;
+
 							if (queue.length) {
-								const nextTask = queue.shift();
-								run(nextTask);
+								let highestIndex = 0;
+
+								for (let i = 1; i < queue.length; i++) {
+									if (queue[i].priority > queue[highestIndex].priority) {
+										highestIndex = i;
+									}
+								}
+
+								const next = queue.splice(highestIndex, 1)[0];
+								run(next);
 							}
 
 							updateUI();
@@ -135,51 +286,40 @@
 				}
 
 				return {
-					add(taskFn, priority) {
+					add(task, priority) {
 						const id = idCounter++;
 
-						const taskItem = {
-							id,
-							task: taskFn,
-							priority,
-						};
+						const item = { id, task, priority };
 
-						if (runningTasks < concurrency) {
-							run(taskItem);
+						if (running < concurrency) {
+							setTimeout(() => run(item), 0);
 						} else {
-							queue.push(taskItem);
+							queue.push(item);
 							updateUI();
 						}
 
 						return id;
 					},
 
-					cancel(taskId) {
-						const index = queue.findIndex((t) => t.id === taskId);
+					cancel(id) {
+						const idx = queue.findIndex((t) => t.id === id);
 
-						if (index !== -1) {
-							queue.splice(index, 1);
+						if (idx !== -1) {
+							queue.splice(idx, 1);
 							updateUI();
 							return true;
 						}
-
 						return false;
-					},
-
-					getQueue() {
-						return queue;
 					},
 				};
 			}
 
-			const scheduler = createScheduler({ concurrency: 2 });
+			const scheduler = createScheduler({ concurrency: 1 });
 			let lastTaskId = null;
 
-			function log(message) {
+			function log(msg) {
 				const logEl = document.getElementById("log");
-				if (!logEl) return;
-
-				logEl.innerHTML += `<div>> ${message}</div>`;
+				logEl.innerHTML += `<div>> ${msg}</div>`;
 				logEl.scrollTop = logEl.scrollHeight;
 			}
 
@@ -187,15 +327,14 @@
 				let id;
 
 				id = scheduler.add((signal) => {
-					log(`Starting task #${id} (priority ${priority})`);
+					log(`START: Task #${id} (P:${priority})`);
 
 					return new Promise((resolve, reject) => {
 						const timer = setTimeout(() => {
-							log(`Finished task #${id}`);
+							log(`END: Task #${id}`);
 							resolve();
 						}, duration);
 
-						// handle cancel if triggered
 						signal.onabort = () => {
 							clearTimeout(timer);
 							reject(new Error("Cancelled"));
@@ -204,22 +343,25 @@
 				}, priority);
 
 				lastTaskId = id;
-				log(`Added task #${id} to queue`);
+				log(`Queued Task #${id} (Priority ${priority})`);
 			}
 
 			function cancelLast() {
-				if (!lastTaskId) {
-					log("No task to cancel");
-					return;
-				}
-
-				const removed = scheduler.cancel(lastTaskId);
-
-				if (removed) {
-					log(`Cancelled task #${lastTaskId}`);
+				if (lastTaskId) {
+					if (scheduler.cancel(lastTaskId)) {
+						log(`Cancelled Task #${lastTaskId}`);
+					} else {
+						log(`Task #${lastTaskId} already running or finished`);
+					}
 				} else {
-					log(`Task #${lastTaskId} already running or finished`);
+					log("No task to cancel");
 				}
+			}
+
+			function testPriorityCase() {
+				addTask(1, 2000);
+				addTask(1, 3000);
+				addTask(10, 3000);
 			}
 		</script>
 	</body>
